@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../bloc/reminder/reminder_bloc.dart';
 import '../../bloc/recharge/recharge_bloc.dart';
+import '../../bloc/theme/theme_cubit.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -14,7 +15,6 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _notificationsEnabled = true;
-  bool _darkModeEnabled = false;
   String _defaultReminderTime = '09:00 AM';
   int _defaultReminderDays = 3;
 
@@ -28,8 +28,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       _notificationsEnabled = prefs.getBool('notifications_enabled') ?? true;
-      _darkModeEnabled = prefs.getBool('dark_mode_enabled') ?? false;
-      _defaultReminderTime = prefs.getString('default_reminder_time') ?? '09:00 AM';
+      _defaultReminderTime =
+          prefs.getString('default_reminder_time') ?? '09:00 AM';
       _defaultReminderDays = prefs.getInt('default_reminder_days') ?? 3;
     });
   }
@@ -37,7 +37,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _saveSettings() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('notifications_enabled', _notificationsEnabled);
-    await prefs.setBool('dark_mode_enabled', _darkModeEnabled);
     await prefs.setString('default_reminder_time', _defaultReminderTime);
     await prefs.setInt('default_reminder_days', _defaultReminderDays);
   }
@@ -110,7 +109,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text(
-                    value ? 'Notifications enabled' : 'Notifications disabled',
+                    value
+                        ? 'Notifications enabled'
+                        : 'Notifications disabled',
                   ),
                 ),
               );
@@ -122,28 +123,48 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildAppearanceSettings() {
-    return Card(
-      child: Column(
-        children: [
-          SwitchListTile(
-            title: const Text('Dark Mode'),
-            subtitle: const Text('Use dark theme'),
-            secondary: Icon(_darkModeEnabled ? Icons.dark_mode : Icons.light_mode),
-            value: _darkModeEnabled,
-            onChanged: (value) {
-              setState(() {
-                _darkModeEnabled = value;
-              });
-              _saveSettings();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Restart app to apply theme changes'),
-                ),
-              );
-            },
+    return BlocBuilder<ThemeCubit, ThemeMode>(
+      builder: (context, themeMode) {
+        return Card(
+          child: Column(
+            children: [
+              RadioListTile<ThemeMode>(
+                title: const Text('Light Mode'),
+                secondary: const Icon(Icons.light_mode),
+                value: ThemeMode.light,
+                groupValue: themeMode,
+                onChanged: (value) {
+                  if (value != null) {
+                    context.read<ThemeCubit>().setThemeMode(value);
+                  }
+                },
+              ),
+              RadioListTile<ThemeMode>(
+                title: const Text('Dark Mode'),
+                secondary: const Icon(Icons.dark_mode),
+                value: ThemeMode.dark,
+                groupValue: themeMode,
+                onChanged: (value) {
+                  if (value != null) {
+                    context.read<ThemeCubit>().setThemeMode(value);
+                  }
+                },
+              ),
+              RadioListTile<ThemeMode>(
+                title: const Text('System Default'),
+                secondary: const Icon(Icons.settings_suggest),
+                value: ThemeMode.system,
+                groupValue: themeMode,
+                onChanged: (value) {
+                  if (value != null) {
+                    context.read<ThemeCubit>().setThemeMode(value);
+                  }
+                },
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
