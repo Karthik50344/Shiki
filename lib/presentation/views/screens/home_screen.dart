@@ -136,9 +136,18 @@ class HomeTab extends StatelessWidget {
           systemOverlayStyle: SystemUiOverlayStyle.light,
           title: const Text('Shiki', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.purple)),
           actions: [
-            IconButton(
-              icon: const Icon(Icons.settings_outlined, color: Colors.purple,),
-              onPressed: () => context.push(AppRouter.settings),
+            Container(
+              height: 40,
+              width: 40,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.grey
+              ),
+              child: IconButton(
+                tooltip: "Settings",
+                icon: const Icon(Icons.settings_outlined, color: Colors.purple,),
+                onPressed: () => context.push(AppRouter.settings),
+              ),
             ),
           ],
           flexibleSpace: FlexibleSpaceBar(
