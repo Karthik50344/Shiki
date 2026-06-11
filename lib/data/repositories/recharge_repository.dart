@@ -17,16 +17,17 @@ class RechargeRepository {
   Future<bool> addRecharge(MobileRecharge recharge) async {
     final success = await _storageService.addRecharge(recharge);
     if (success) {
+      // scheduleRechargeReminder already guards on reminderEnabled internally
       await _notificationService.scheduleRechargeReminder(recharge);
     }
     return success;
   }
 
-  // Update recharge
+  // Update recharge — FIX: uses typed cancel
   Future<bool> updateRecharge(MobileRecharge recharge) async {
     final success = await _storageService.updateRecharge(recharge);
     if (success) {
-      await _notificationService.cancelNotification(recharge.id.hashCode);
+      await _notificationService.cancelRechargeNotification(recharge.id);
       if (recharge.reminderEnabled) {
         await _notificationService.scheduleRechargeReminder(recharge);
       }
@@ -34,9 +35,9 @@ class RechargeRepository {
     return success;
   }
 
-  // Delete recharge
+  // Delete recharge — FIX: uses typed cancel
   Future<bool> deleteRecharge(String id) async {
-    await _notificationService.cancelNotification(id.hashCode);
+    await _notificationService.cancelRechargeNotification(id);
     return await _storageService.deleteRecharge(id);
   }
 
@@ -63,12 +64,12 @@ class RechargeRepository {
       String mobileNumber) async {
     final recharges = await getAllRecharges();
     final numberRecharges =
-    recharges.where((r) => r.mobileNumber == mobileNumber).toList();
+        recharges.where((r) => r.mobileNumber == mobileNumber).toList();
 
     if (numberRecharges.isEmpty) return null;
 
-    return numberRecharges.reduce((a, b) =>
-    a.rechargeDate.isAfter(b.rechargeDate) ? a : b);
+    return numberRecharges.reduce(
+        (a, b) => a.rechargeDate.isAfter(b.rechargeDate) ? a : b);
   }
 
   // Get unique mobile numbers

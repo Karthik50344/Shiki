@@ -28,14 +28,27 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
 
   bool get _isEditing => widget.reminder != null;
 
+  /// The full DateTime combining date + time picker selections.
+  DateTime get _combinedDateTime => DateTime(
+        _selectedDate.year,
+        _selectedDate.month,
+        _selectedDate.day,
+        _selectedTime.hour,
+        _selectedTime.minute,
+      );
+
+  /// True when the selected date+time is in the past (and not a repeating reminder).
+  bool get _isInPast =>
+      _selectedRepeat == RepeatType.none &&
+      _combinedDateTime.isBefore(DateTime.now());
+
   @override
   void initState() {
     super.initState();
-
     if (_isEditing) {
       _titleController = TextEditingController(text: widget.reminder!.title);
       _descriptionController =
-          TextEditingController(text: widget.reminder!.description);
+          TextEditingController(text: widget.reminder!.description ?? '');
       _selectedDate = widget.reminder!.dateTime;
       _selectedTime = TimeOfDay.fromDateTime(widget.reminder!.dateTime);
       _selectedCategory = widget.reminder!.category;
@@ -63,7 +76,10 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(_isEditing ? 'Edit Reminder' : 'Add Reminder'),
+        title: Text(
+          _isEditing ? 'Edit Reminder' : 'Add Reminder',
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.pop(),
@@ -71,7 +87,8 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
         actions: [
           TextButton(
             onPressed: _saveReminder,
-            child: const Text('Save'),
+            child: const Text('Save',
+                style: TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -79,53 +96,80 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
         listener: (context, state) {
           if (state is ReminderOperationSuccess) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.message)),
+              SnackBar(
+                content: Text(state.message),
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
+              ),
             );
             context.pop();
           } else if (state is ReminderError) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.message)),
+              SnackBar(
+                content: Text(state.message),
+                backgroundColor: Colors.red,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
+              ),
             );
           }
         },
         child: Form(
           key: _formKey,
           child: ListView(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 40),
             children: [
+              // ── Title ──────────────────────────────────────────────────────
               TextFormField(
                 controller: _titleController,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'Title',
                   hintText: 'Enter reminder title',
-                  prefixIcon: Icon(Icons.title),
-                  border: OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.title),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12)),
                 ),
+                textCapitalization: TextCapitalization.sentences,
                 validator: (value) {
-                  if (value == null || value.isEmpty) {
+                  if (value == null || value.trim().isEmpty) {
                     return 'Please enter a title';
                   }
                   return null;
                 },
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 14),
+
+              // ── Description ────────────────────────────────────────────────
               TextFormField(
                 controller: _descriptionController,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'Description (Optional)',
                   hintText: 'Enter reminder description',
-                  prefixIcon: Icon(Icons.description),
-                  border: OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.description),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12)),
                 ),
                 maxLines: 3,
+                textCapitalization: TextCapitalization.sentences,
               ),
-              const SizedBox(height: 24),
-              const Text(
-                'Date & Time',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 22),
+
+              // ── Date & Time ────────────────────────────────────────────────
+              _SectionLabel('Date & Time'),
+              const SizedBox(height: 10),
               Card(
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: BorderSide(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .outline
+                        .withValues(alpha: 0.2),
+                  ),
+                ),
                 child: Column(
                   children: [
                     ListTile(
@@ -136,7 +180,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                       trailing: const Icon(Icons.chevron_right),
                       onTap: _selectDate,
                     ),
-                    const Divider(height: 1),
+                    const Divider(height: 1, indent: 16, endIndent: 16),
                     ListTile(
                       leading: const Icon(Icons.access_time),
                       title: const Text('Time'),
@@ -147,12 +191,43 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                   ],
                 ),
               ),
-              const SizedBox(height: 24),
-              const Text(
-                'Category',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 12),
+
+              // FIX: warn when the selected date+time is already in the past
+              // (only for non-repeating reminders — past times are valid for
+              // daily/weekly repeats since the next occurrence is in the future)
+              if (_isInPast) ...[
+                const SizedBox(height: 8),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                        color: Colors.orange.withValues(alpha: 0.4)),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.warning_amber_rounded,
+                          color: Colors.orange, size: 18),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'This date/time is in the past. '
+                          'The reminder will be saved but no notification will fire.',
+                          style: TextStyle(
+                              fontSize: 12, color: Colors.orange),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              const SizedBox(height: 22),
+
+              // ── Category ───────────────────────────────────────────────────
+              _SectionLabel('Category'),
+              const SizedBox(height: 10),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
@@ -164,7 +239,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                       children: [
                         Icon(
                           category.icon,
-                          size: 18,
+                          size: 16,
                           color: isSelected ? Colors.white : category.color,
                         ),
                         const SizedBox(width: 4),
@@ -173,22 +248,32 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                     ),
                     selected: isSelected,
                     selectedColor: category.color,
-                    backgroundColor: category.color.withOpacity(0.1),
-                    onSelected: (selected) {
-                      setState(() {
-                        _selectedCategory = category;
-                      });
+                    backgroundColor: category.color.withValues(alpha: 0.1),
+                    labelStyle: TextStyle(
+                      color: isSelected ? Colors.white : null,
+                    ),
+                    onSelected: (_) {
+                      setState(() => _selectedCategory = category);
                     },
                   );
                 }).toList(),
               ),
-              const SizedBox(height: 24),
-              const Text(
-                'Repeat',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 22),
+
+              // ── Repeat ─────────────────────────────────────────────────────
+              _SectionLabel('Repeat'),
+              const SizedBox(height: 10),
               Card(
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: BorderSide(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .outline
+                        .withValues(alpha: 0.2),
+                  ),
+                ),
                 child: Column(
                   children: RepeatType.values.map((repeat) {
                     return RadioListTile<RepeatType>(
@@ -200,31 +285,55 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                           _selectedRepeat = value!;
                         });
                       },
+                      dense: true,
                     );
                   }).toList(),
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 22),
+
+              // ── Notification ───────────────────────────────────────────────
               Card(
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: BorderSide(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .outline
+                        .withValues(alpha: 0.2),
+                  ),
+                ),
                 child: SwitchListTile(
-                  title: const Text('Enable Notification'),
+                  title: const Text('Enable Notification',
+                      style: TextStyle(fontWeight: FontWeight.w500)),
                   subtitle: const Text('Get notified at scheduled time'),
-                  secondary: const Icon(Icons.notifications),
+                  secondary: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.purple.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child:
+                        const Icon(Icons.notifications, color: Colors.purple),
+                  ),
                   value: _notificationEnabled,
                   onChanged: (value) {
-                    setState(() {
-                      _notificationEnabled = value;
-                    });
+                    setState(() => _notificationEnabled = value);
                   },
                 ),
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 28),
+
+              // ── Save Button ────────────────────────────────────────────────
               FilledButton.icon(
                 onPressed: _saveReminder,
                 icon: const Icon(Icons.save),
                 label: Text(_isEditing ? 'Update Reminder' : 'Create Reminder'),
                 style: FilledButton.styleFrom(
                   padding: const EdgeInsets.all(16),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
                 ),
               ),
             ],
@@ -235,16 +344,19 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
   }
 
   Future<void> _selectDate() async {
+    // FIX: firstDate is DateTime.now() (today), not a future-only restriction.
+    // Users should be able to pick today's date; editing existing past reminders
+    // should also be allowed. We only warn, not block, for past date+time combos.
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: _selectedDate,
-      firstDate: DateTime.now(),
+      initialDate: _selectedDate.isBefore(DateTime.now())
+          ? DateTime.now()
+          : _selectedDate,
+      firstDate: DateTime.now().subtract(const Duration(days: 1)),
       lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
     );
-    if (picked != null && picked != _selectedDate) {
-      setState(() {
-        _selectedDate = picked;
-      });
+    if (picked != null) {
+      setState(() => _selectedDate = picked);
     }
   }
 
@@ -253,41 +365,42 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
       context: context,
       initialTime: _selectedTime,
     );
-    if (picked != null && picked != _selectedTime) {
-      setState(() {
-        _selectedTime = picked;
-      });
+    if (picked != null) {
+      setState(() => _selectedTime = picked);
     }
   }
 
   void _saveReminder() {
-    if (_formKey.currentState!.validate()) {
-      final dateTime = DateTime(
-        _selectedDate.year,
-        _selectedDate.month,
-        _selectedDate.day,
-        _selectedTime.hour,
-        _selectedTime.minute,
-      );
+    if (!_formKey.currentState!.validate()) return;
 
-      final reminder = Reminder(
-        id: _isEditing ? widget.reminder!.id : const Uuid().v4(),
-        title: _titleController.text,
-        description: _descriptionController.text.isEmpty
-            ? null
-            : _descriptionController.text,
-        dateTime: dateTime,
-        category: _selectedCategory,
-        repeat: _selectedRepeat,
-        notificationEnabled: _notificationEnabled,
-        isCompleted: _isEditing ? widget.reminder!.isCompleted : false,
-      );
+    final reminder = Reminder(
+      id: _isEditing ? widget.reminder!.id : const Uuid().v4(),
+      title: _titleController.text.trim(),
+      description: _descriptionController.text.trim().isEmpty
+          ? null
+          : _descriptionController.text.trim(),
+      dateTime: _combinedDateTime,
+      category: _selectedCategory,
+      repeat: _selectedRepeat,
+      notificationEnabled: _notificationEnabled,
+      isCompleted: _isEditing ? widget.reminder!.isCompleted : false,
+    );
 
-      if (_isEditing) {
-        context.read<ReminderBloc>().add(UpdateReminder(reminder));
-      } else {
-        context.read<ReminderBloc>().add(AddReminder(reminder));
-      }
+    if (_isEditing) {
+      context.read<ReminderBloc>().add(UpdateReminder(reminder));
+    } else {
+      context.read<ReminderBloc>().add(AddReminder(reminder));
     }
   }
+}
+
+class _SectionLabel extends StatelessWidget {
+  final String text;
+  const _SectionLabel(this.text);
+
+  @override
+  Widget build(BuildContext context) => Text(
+        text,
+        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+      );
 }

@@ -9,41 +9,27 @@ import '../../bloc/reminder/reminder_bloc.dart';
 import '../../bloc/recharge/recharge_bloc.dart';
 import '../../router/app_router.dart';
 
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
-
-  @override
-  State<HomeScreen> createState() => _HomeScreenState();
-}
-
-class _HomeScreenState extends State<HomeScreen> {
-  int _selectedIndex = 0;
-
-  void _onDestinationSelected(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-
-    switch (index) {
-      case 0:
-        context.go(AppRouter.home);
-        break;
-      case 1:
-        context.go(AppRouter.reminders);
-        break;
-      case 2:
-        context.go(AppRouter.recharge);
-        break;
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // FIX: index is always 0 on HomeScreen — no state needed here because
+      // each screen is its own route; index was wrong when returning from sub-routes
       body: const HomeTab(),
       bottomNavigationBar: NavigationBar(
-        selectedIndex: _selectedIndex,
-        onDestinationSelected: _onDestinationSelected,
+        selectedIndex: 0,
+        onDestinationSelected: (index) {
+          switch (index) {
+            case 1:
+              context.go(AppRouter.reminders);
+              break;
+            case 2:
+              context.go(AppRouter.recharge);
+              break;
+          }
+        },
         destinations: const [
           NavigationDestination(
             icon: Icon(Icons.home_outlined),
@@ -65,8 +51,8 @@ class _HomeScreenState extends State<HomeScreen> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showAddOptions(context),
         backgroundColor: Colors.purple,
-        icon: const Icon(Icons.add, color: Colors.white,),
-        label: const Text("Add", style: TextStyle(color: Colors.white),),
+        icon: const Icon(Icons.add, color: Colors.white),
+        label: const Text('Add', style: TextStyle(color: Colors.white)),
       ),
     );
   }
@@ -75,41 +61,38 @@ class _HomeScreenState extends State<HomeScreen> {
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(20),
+      builder: (context) => Padding(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            ListTile(
-              leading: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.purple.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(Icons.notifications, color: Colors.purple),
+            Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 20),
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
               ),
-              title: const Text('Add Reminder'),
-              subtitle: const Text('Create a new reminder'),
+            ),
+            _AddOptionTile(
+              icon: Icons.notifications,
+              color: Colors.purple,
+              title: 'Add Reminder',
+              subtitle: 'Create a new reminder',
               onTap: () {
                 Navigator.pop(context);
                 context.push(AppRouter.addReminder);
               },
             ),
             const SizedBox(height: 10),
-            ListTile(
-              leading: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.blue.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(Icons.phone_android, color: Colors.blue),
-              ),
-              title: const Text('Add Recharge'),
-              subtitle: const Text('Track mobile recharge'),
+            _AddOptionTile(
+              icon: Icons.phone_android,
+              color: Colors.blue,
+              title: 'Add Recharge',
+              subtitle: 'Track mobile recharge',
               onTap: () {
                 Navigator.pop(context);
                 context.push(AppRouter.addRecharge);
@@ -127,26 +110,32 @@ class HomeTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    String gifPath = 'assets/image/sakura.jfif';
     return CustomScrollView(
       slivers: [
         SliverAppBar.large(
           floating: false,
           pinned: true,
           systemOverlayStyle: SystemUiOverlayStyle.light,
-          title: const Text('Shikokiroku', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.purple)),
+          title: const Text(
+            'Shiki',
+            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.purple),
+          ),
           actions: [
-            Container(
-              height: 40,
-              width: 40,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.grey
-              ),
-              child: IconButton(
-                tooltip: "Settings",
-                icon: const Icon(Icons.settings_outlined, color: Colors.purple,),
-                onPressed: () => context.push(AppRouter.settings),
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: Container(
+                height: 40,
+                width: 40,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.grey.withValues(alpha: 0.15),
+                ),
+                child: IconButton(
+                  tooltip: 'Settings',
+                  icon:
+                      const Icon(Icons.settings_outlined, color: Colors.purple),
+                  onPressed: () => context.push(AppRouter.settings),
+                ),
               ),
             ),
           ],
@@ -155,9 +144,18 @@ class HomeTab extends StatelessWidget {
               fit: StackFit.expand,
               children: [
                 Image.asset(
-                  gifPath,
+                  'assets/image/sakura.jfif',
                   fit: BoxFit.cover,
-                  gaplessPlayback: true, // prevents flicker
+                  gaplessPlayback: true,
+                  errorBuilder: (_, __, ___) => Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [Colors.purple.shade900, Colors.purple.shade300],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                    ),
+                  ),
                 ),
                 Container(
                   decoration: const BoxDecoration(
@@ -174,30 +172,21 @@ class HomeTab extends StatelessWidget {
         ),
         SliverToBoxAdapter(
           child: Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _buildWelcomeCard(context),
-                const SizedBox(height: 20),
-                const Text(
-                  'Quick Stats',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
+                const SizedBox(height: 24),
+                _buildSectionTitle('Quick Stats'),
                 const SizedBox(height: 12),
                 _buildStatsSection(context),
                 const SizedBox(height: 24),
-                const Text(
-                  'Upcoming Reminders',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
+                _buildSectionTitle('Upcoming Reminders'),
                 const SizedBox(height: 12),
                 _buildUpcomingReminders(context),
                 const SizedBox(height: 24),
-                const Text(
-                  'Recharge Status',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
+                _buildSectionTitle('Recharge Status'),
                 const SizedBox(height: 12),
                 _buildRechargeStatus(context),
               ],
@@ -208,15 +197,25 @@ class HomeTab extends StatelessWidget {
     );
   }
 
+  Widget _buildSectionTitle(String title) {
+    return Text(
+      title,
+      style: const TextStyle(fontSize: 19, fontWeight: FontWeight.bold),
+    );
+  }
+
   Widget _buildWelcomeCard(BuildContext context) {
     final hour = DateTime.now().hour;
-    String greeting = 'Good Morning';
-    IconData greetingIcon = Icons.wb_sunny;
+    String greeting;
+    IconData greetingIcon;
 
-    if (hour >= 12 && hour < 17) {
+    if (hour < 12) {
+      greeting = 'Good Morning';
+      greetingIcon = Icons.wb_sunny;
+    } else if (hour < 17) {
       greeting = 'Good Afternoon';
       greetingIcon = Icons.wb_sunny_outlined;
-    } else if (hour >= 17) {
+    } else {
       greeting = 'Good Evening';
       greetingIcon = Icons.nightlight_round;
     }
@@ -230,11 +229,18 @@ class HomeTab extends StatelessWidget {
             Theme.of(context).colorScheme.secondary,
           ],
         ),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Row(
         children: [
-          Icon(greetingIcon, color: Colors.white, size: 32),
+          Icon(greetingIcon, color: Colors.white, size: 36),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
@@ -248,6 +254,7 @@ class HomeTab extends StatelessWidget {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
+                const SizedBox(height: 2),
                 Text(
                   DateFormat('EEEE, MMMM d').format(DateTime.now()),
                   style: const TextStyle(color: Colors.white70, fontSize: 14),
@@ -265,15 +272,12 @@ class HomeTab extends StatelessWidget {
       builder: (context, reminderState) {
         return BlocBuilder<RechargeBloc, RechargeState>(
           builder: (context, rechargeState) {
-            int activeCount = 0;
-            int overdueCount = 0;
-            int expiringCount = 0;
+            int activeCount = 0, overdueCount = 0, expiringCount = 0;
 
             if (reminderState is ReminderLoaded) {
               activeCount = reminderState.activeReminders.length;
               overdueCount = reminderState.overdueReminders.length;
             }
-
             if (rechargeState is RechargeLoaded) {
               expiringCount = rechargeState.expiringSoonRecharges.length;
             }
@@ -281,32 +285,29 @@ class HomeTab extends StatelessWidget {
             return Row(
               children: [
                 Expanded(
-                  child: _buildStatCard(
-                    context,
-                    'Active',
-                    activeCount.toString(),
-                    Icons.notifications_active,
-                    Colors.purple,
+                  child: _StatCard(
+                    label: 'Active',
+                    value: activeCount,
+                    icon: Icons.notifications_active,
+                    color: Colors.purple,
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: _buildStatCard(
-                    context,
-                    'Overdue',
-                    overdueCount.toString(),
-                    Icons.warning,
-                    Colors.orange,
+                  child: _StatCard(
+                    label: 'Overdue',
+                    value: overdueCount,
+                    icon: Icons.warning_amber_rounded,
+                    color: Colors.orange,
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: _buildStatCard(
-                    context,
-                    'Expiring',
-                    expiringCount.toString(),
-                    Icons.phone_android,
-                    Colors.red,
+                  child: _StatCard(
+                    label: 'Expiring',
+                    value: expiringCount,
+                    icon: Icons.phone_android,
+                    color: Colors.red,
                   ),
                 ),
               ],
@@ -317,131 +318,42 @@ class HomeTab extends StatelessWidget {
     );
   }
 
-  Widget _buildStatCard(
-      BuildContext context,
-      String label,
-      String value,
-      IconData icon,
-      Color color,
-      ) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
-        ),
-      ),
-      child: Column(
-        children: [
-          Icon(icon, color: color, size: 28),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
-          ),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildUpcomingReminders(BuildContext context) {
     return BlocBuilder<ReminderBloc, ReminderState>(
       builder: (context, state) {
         if (state is ReminderLoaded) {
-          final upcomingReminders = state.activeReminders.take(3).toList();
+          final upcoming = state.activeReminders.take(3).toList();
 
-          if (upcomingReminders.isEmpty) {
-            return _buildEmptyState(
-              context,
-              'No upcoming reminders',
-              Icons.notifications_none,
+          if (upcoming.isEmpty) {
+            return _EmptyCard(
+              icon: Icons.notifications_none,
+              message: 'No upcoming reminders',
+              actionLabel: 'Add Reminder',
+              onAction: () => context.push(AppRouter.addReminder),
             );
           }
 
           return Column(
-            children: upcomingReminders.map((reminder) {
-              return Card(
-                margin: const EdgeInsets.only(bottom: 8),
-                child: ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: reminder.category.color.withOpacity(0.2),
-                    child: Icon(
-                      reminder.category.icon,
-                      color: reminder.category.color,
-                    ),
-                  ),
-                  title: Text(reminder.title),
-                  subtitle: Text(
-                    DateFormat('MMM d, y - h:mm a').format(reminder.dateTime),
-                  ),
-                  trailing: PopupMenuButton(
-                    icon: const Icon(Icons.more_vert),
-                    onSelected: (value) {
-                      if (value == 'edit') {
-                        ReminderActions.editReminder(context, reminder);
-                      } else if (value == 'delete') {
-                        ReminderActions.quickDelete(context, reminder);
-                      } else if (value == 'complete') {
-                        ReminderActions.toggleComplete(context, reminder);
-                      }
-                    },
-                    itemBuilder: (context) => [
-                      const PopupMenuItem(
-                        value: 'edit',
-                        child: Row(
-                          children: [
-                            Icon(Icons.edit, size: 20),
-                            SizedBox(width: 8),
-                            Text('Edit'),
-                          ],
-                        ),
-                      ),
-                      const PopupMenuItem(
-                        value: 'complete',
-                        child: Row(
-                          children: [
-                            Icon(Icons.check_circle, size: 20),
-                            SizedBox(width: 8),
-                            Text('Mark Complete'),
-                          ],
-                        ),
-                      ),
-                      const PopupMenuItem(
-                        value: 'delete',
-                        child: Row(
-                          children: [
-                            Icon(Icons.delete, size: 20, color: Colors.red),
-                            SizedBox(width: 8),
-                            Text('Delete', style: TextStyle(color: Colors.red)),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  onTap: () => ReminderActions.showActionSheet(context, reminder),
-                ),
+            children: upcoming.map((reminder) {
+              return _ReminderCard(
+                reminder: reminder,
+                onEdit: () => ReminderActions.editReminder(context, reminder),
+                onDelete: () =>
+                    ReminderActions.quickDelete(context, reminder),
+                onComplete: () =>
+                    ReminderActions.toggleComplete(context, reminder),
+                onTap: () =>
+                    ReminderActions.showActionSheet(context, reminder),
               );
             }).toList(),
           );
         }
 
-        return _buildEmptyState(
-          context,
-          'No upcoming reminders',
-          Icons.notifications_none,
+        return _EmptyCard(
+          icon: Icons.notifications_none,
+          message: 'No upcoming reminders',
+          actionLabel: 'Add Reminder',
+          onAction: () => context.push(AppRouter.addReminder),
         );
       },
     );
@@ -451,130 +363,339 @@ class HomeTab extends StatelessWidget {
     return BlocBuilder<RechargeBloc, RechargeState>(
       builder: (context, state) {
         if (state is RechargeLoaded) {
-          final recharges = state.activeRecharges;
+          final recharges = state.activeRecharges.take(3).toList();
 
           if (recharges.isEmpty) {
-            return _buildEmptyState(
-              context,
-              'No active recharges',
-              Icons.phone_android_outlined,
+            return _EmptyCard(
+              icon: Icons.phone_android_outlined,
+              message: 'No active recharges',
+              actionLabel: 'Add Recharge',
+              onAction: () => context.push(AppRouter.addRecharge),
             );
           }
 
           return Column(
-            children: recharges.take(3).map((recharge) {
-              final isExpiringSoon = recharge.isExpiringSoon;
-              final daysRemaining = recharge.daysRemaining;
-
-              return Card(
-                margin: const EdgeInsets.only(bottom: 8),
-                child: ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: isExpiringSoon
-                        ? Colors.red.withOpacity(0.2)
-                        : Colors.green.withOpacity(0.2),
-                    child: Icon(
-                      Icons.phone_android,
-                      color: isExpiringSoon ? Colors.red : Colors.green,
-                    ),
-                  ),
-                  title: Text(recharge.mobileNumber),
-                  subtitle: Text('${recharge.operator} - ₹${recharge.amount}'),
-                  trailing: PopupMenuButton(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          '$daysRemaining days',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: isExpiringSoon ? Colors.red : Colors.green,
-                          ),
-                        ),
-                        Text(
-                          'remaining',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onSurface
-                                .withOpacity(0.6),
-                          ),
-                        ),
-                      ],
-                    ),
-                    onSelected: (value) {
-                      if (value == 'edit') {
-                        context.push(AppRouter.editRecharge, extra: recharge);
-                      } else if (value == 'delete') {
-                        RechargeActions.showActionSheet(context, recharge);
-                      }
-                    },
-                    itemBuilder: (context) => [
-                      const PopupMenuItem(
-                        value: 'edit',
-                        child: Row(
-                          children: [
-                            Icon(Icons.edit, size: 20),
-                            SizedBox(width: 8),
-                            Text('Edit'),
-                          ],
-                        ),
-                      ),
-                      const PopupMenuItem(
-                        value: 'delete',
-                        child: Row(
-                          children: [
-                            Icon(Icons.delete, size: 20, color: Colors.red),
-                            SizedBox(width: 8),
-                            Text('Delete', style: TextStyle(color: Colors.red)),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  onTap: () => RechargeActions.showActionSheet(context, recharge),
-                ),
-              );
+            children: recharges.map((recharge) {
+              return _RechargeCard(recharge: recharge);
             }).toList(),
           );
         }
 
-        return _buildEmptyState(
-          context,
-          'No active recharges',
-          Icons.phone_android_outlined,
+        return _EmptyCard(
+          icon: Icons.phone_android_outlined,
+          message: 'No active recharges',
+          actionLabel: 'Add Recharge',
+          onAction: () => context.push(AppRouter.addRecharge),
         );
       },
     );
   }
+}
 
-  Widget _buildEmptyState(
-      BuildContext context, String message, IconData icon) {
+// ─── Supporting Widgets ───────────────────────────────────────────────────────
+
+class _AddOptionTile extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  const _AddOptionTile({
+    required this.icon,
+    required this.color,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      leading: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Icon(icon, color: color),
+      ),
+      title:
+          Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
+      subtitle: Text(subtitle),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      onTap: onTap,
+    );
+  }
+}
+
+class _StatCard extends StatelessWidget {
+  final String label;
+  final int value;
+  final IconData icon;
+  final Color color;
+
+  const _StatCard({
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(32),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.15),
+        ),
       ),
-      child: Center(
-        child: Column(
-          children: [
-            Icon(
-              icon,
-              size: 48,
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
+      child: Column(
+        children: [
+          Icon(icon, color: color, size: 26),
+          const SizedBox(height: 6),
+          Text(
+            '$value',
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: color,
             ),
-            const SizedBox(height: 12),
-            Text(
-              message,
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-              ),
+          ),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ReminderCard extends StatelessWidget {
+  final Reminder reminder;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+  final VoidCallback onComplete;
+  final VoidCallback onTap;
+
+  const _ReminderCard({
+    required this.reminder,
+    required this.onEdit,
+    required this.onDelete,
+    required this.onComplete,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(
+          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.15),
+        ),
+      ),
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: reminder.category.color.withValues(alpha: 0.15),
+          child: Icon(reminder.category.icon, color: reminder.category.color),
+        ),
+        title: Text(
+          reminder.title,
+          style: const TextStyle(fontWeight: FontWeight.w600),
+        ),
+        subtitle: Text(
+          DateFormat('MMM d, y · h:mm a').format(reminder.dateTime),
+          style: TextStyle(
+              fontSize: 12,
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),
+        ),
+        trailing: PopupMenuButton<String>(
+          icon: const Icon(Icons.more_vert),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          onSelected: (value) {
+            if (value == 'edit') onEdit();
+            if (value == 'delete') onDelete();
+            if (value == 'complete') onComplete();
+          },
+          itemBuilder: (context) => [
+            const PopupMenuItem(
+                value: 'edit',
+                child: _MenuRow(icon: Icons.edit, label: 'Edit')),
+            const PopupMenuItem(
+                value: 'complete',
+                child: _MenuRow(
+                    icon: Icons.check_circle, label: 'Mark Complete')),
+            const PopupMenuItem(
+                value: 'delete',
+                child: _MenuRow(
+                    icon: Icons.delete, label: 'Delete', isDestructive: true)),
           ],
         ),
+        onTap: onTap,
+      ),
+    );
+  }
+}
+
+class _RechargeCard extends StatelessWidget {
+  final MobileRecharge recharge;
+
+  const _RechargeCard({required this.recharge});
+
+  @override
+  Widget build(BuildContext context) {
+    final isExpiringSoon = recharge.isExpiringSoon;
+    final daysRemaining = recharge.daysRemaining;
+    final statusColor = isExpiringSoon ? Colors.orange : Colors.green;
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(
+          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.15),
+        ),
+      ),
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: statusColor.withValues(alpha: 0.15),
+          child: Icon(Icons.phone_android, color: statusColor),
+        ),
+        title: Text(
+          recharge.mobileNumber,
+          style: const TextStyle(fontWeight: FontWeight.w600),
+        ),
+        subtitle: Text(
+          '${recharge.operator} · ₹${recharge.amount}',
+          style: TextStyle(
+              fontSize: 12,
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),
+        ),
+        trailing: PopupMenuButton<String>(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                '$daysRemaining days',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: statusColor,
+                  fontSize: 13,
+                ),
+              ),
+              Text(
+                'remaining',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.5),
+                ),
+              ),
+            ],
+          ),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          onSelected: (value) {
+            if (value == 'edit') {
+              context.push(AppRouter.editRecharge, extra: recharge);
+            } else if (value == 'delete') {
+              RechargeActions.showActionSheet(context, recharge);
+            }
+          },
+          itemBuilder: (context) => [
+            const PopupMenuItem(
+                value: 'edit',
+                child: _MenuRow(icon: Icons.edit, label: 'Edit')),
+            const PopupMenuItem(
+                value: 'delete',
+                child: _MenuRow(
+                    icon: Icons.delete, label: 'Delete', isDestructive: true)),
+          ],
+        ),
+        onTap: () => RechargeActions.showActionSheet(context, recharge),
+      ),
+    );
+  }
+}
+
+class _MenuRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool isDestructive;
+
+  const _MenuRow(
+      {required this.icon, required this.label, this.isDestructive = false});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = isDestructive ? Colors.red : null;
+    return Row(
+      children: [
+        Icon(icon, size: 20, color: color),
+        const SizedBox(width: 10),
+        Text(label, style: TextStyle(color: color)),
+      ],
+    );
+  }
+}
+
+class _EmptyCard extends StatelessWidget {
+  final IconData icon;
+  final String message;
+  final String actionLabel;
+  final VoidCallback onAction;
+
+  const _EmptyCard({
+    required this.icon,
+    required this.message,
+    required this.actionLabel,
+    required this.onAction,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.15),
+        ),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, size: 48,
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.25)),
+          const SizedBox(height: 10),
+          Text(
+            message,
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+              fontSize: 15,
+            ),
+          ),
+          const SizedBox(height: 14),
+          FilledButton.tonal(
+            onPressed: onAction,
+            child: Text(actionLabel),
+          ),
+        ],
       ),
     );
   }

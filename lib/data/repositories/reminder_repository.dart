@@ -22,12 +22,14 @@ class ReminderRepository {
     return success;
   }
 
-  // Update reminder
+  // Update reminder — FIX: uses typed cancel so it hits the correct notification id
   Future<bool> updateReminder(Reminder reminder) async {
     final success = await _storageService.updateReminder(reminder);
     if (success) {
-      await _notificationService.cancelNotification(reminder.id.hashCode);
-      if (reminder.notificationEnabled) {
+      // Always cancel existing notification first
+      await _notificationService.cancelReminderNotification(reminder.id);
+      // Re-schedule only when appropriate (not completed + notifications on)
+      if (reminder.notificationEnabled && !reminder.isCompleted) {
         await _notificationService.scheduleReminderNotification(reminder);
       }
     }
@@ -36,7 +38,7 @@ class ReminderRepository {
 
   // Delete reminder
   Future<bool> deleteReminder(String id) async {
-    await _notificationService.cancelNotification(id.hashCode);
+    await _notificationService.cancelReminderNotification(id); // FIX: typed cancel
     return await _storageService.deleteReminder(id);
   }
 

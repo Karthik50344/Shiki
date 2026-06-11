@@ -1,7 +1,8 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
 
-// Reminder Model
+// ─── Reminder Model ───────────────────────────────────────────────────────────
+
 class Reminder extends Equatable {
   final String id;
   final String title;
@@ -38,14 +39,14 @@ class Reminder extends Equatable {
 
   factory Reminder.fromJson(Map<String, dynamic> json) {
     return Reminder(
-      id: json['id'],
-      title: json['title'],
-      description: json['description'],
-      dateTime: DateTime.parse(json['dateTime']),
-      category: ReminderCategory.values[json['category']],
-      repeat: RepeatType.values[json['repeat']],
-      isCompleted: json['isCompleted'],
-      notificationEnabled: json['notificationEnabled'],
+      id: json['id'] as String,
+      title: json['title'] as String,
+      description: json['description'] as String?,
+      dateTime: DateTime.parse(json['dateTime'] as String),
+      category: ReminderCategory.values[json['category'] as int],
+      repeat: RepeatType.values[json['repeat'] as int],
+      isCompleted: json['isCompleted'] as bool,
+      notificationEnabled: json['notificationEnabled'] as bool,
     );
   }
 
@@ -73,18 +74,19 @@ class Reminder extends Equatable {
 
   @override
   List<Object?> get props => [
-    id,
-    title,
-    description,
-    dateTime,
-    category,
-    repeat,
-    isCompleted,
-    notificationEnabled,
-  ];
+        id,
+        title,
+        description,
+        dateTime,
+        category,
+        repeat,
+        isCompleted,
+        notificationEnabled,
+      ];
 }
 
-// Mobile Recharge Model
+// ─── Mobile Recharge Model ────────────────────────────────────────────────────
+
 class MobileRecharge extends Equatable {
   final String id;
   final String mobileNumber;
@@ -124,45 +126,77 @@ class MobileRecharge extends Equatable {
 
   factory MobileRecharge.fromJson(Map<String, dynamic> json) {
     return MobileRecharge(
-      id: json['id'],
-      mobileNumber: json['mobileNumber'],
-      operator: json['operator'],
-      amount: json['amount'],
-      rechargeDate: DateTime.parse(json['rechargeDate']),
-      validityDays: json['validityDays'],
-      expiryDate: DateTime.parse(json['expiryDate']),
-      reminderEnabled: json['reminderEnabled'],
-      reminderDaysBefore: json['reminderDaysBefore'],
+      id: json['id'] as String,
+      mobileNumber: json['mobileNumber'] as String,
+      operator: json['operator'] as String,
+      amount: (json['amount'] as num).toDouble(), // FIX: safe num→double cast
+      rechargeDate: DateTime.parse(json['rechargeDate'] as String),
+      validityDays: json['validityDays'] as int,
+      expiryDate: DateTime.parse(json['expiryDate'] as String),
+      reminderEnabled: json['reminderEnabled'] as bool,
+      reminderDaysBefore: json['reminderDaysBefore'] as int,
     );
   }
 
-  int get daysRemaining {
-    return expiryDate.difference(DateTime.now()).inDays;
+  // FIX: added copyWith (was missing from original)
+  MobileRecharge copyWith({
+    String? id,
+    String? mobileNumber,
+    String? operator,
+    double? amount,
+    DateTime? rechargeDate,
+    int? validityDays,
+    DateTime? expiryDate,
+    bool? reminderEnabled,
+    int? reminderDaysBefore,
+  }) {
+    return MobileRecharge(
+      id: id ?? this.id,
+      mobileNumber: mobileNumber ?? this.mobileNumber,
+      operator: operator ?? this.operator,
+      amount: amount ?? this.amount,
+      rechargeDate: rechargeDate ?? this.rechargeDate,
+      validityDays: validityDays ?? this.validityDays,
+      expiryDate: expiryDate ?? this.expiryDate,
+      reminderEnabled: reminderEnabled ?? this.reminderEnabled,
+      reminderDaysBefore: reminderDaysBefore ?? this.reminderDaysBefore,
+    );
   }
 
-  bool get isExpiringSoon {
-    return daysRemaining <= reminderDaysBefore && daysRemaining >= 0;
-  }
+  /// Days remaining until expiry. Negative means expired.
+  int get daysRemaining =>
+      expiryDate.difference(DateTime.now()).inDays;
 
-  bool get isExpired {
-    return daysRemaining < 0;
+  /// True when expiry is between 0 and reminderDaysBefore days away (inclusive)
+  bool get isExpiringSoon =>
+      daysRemaining <= reminderDaysBefore && daysRemaining >= 0;
+
+  bool get isExpired => daysRemaining < 0;
+
+  /// Progress of consumed validity: 0.0 (just recharged) → 1.0 (expired).
+  /// Clamped to [0, 1] so the progress bar never overflows.
+  double get validityProgress {
+    if (validityDays <= 0) return 1.0;
+    final elapsed = validityDays - daysRemaining;
+    return (elapsed / validityDays).clamp(0.0, 1.0); // FIX: clamped
   }
 
   @override
   List<Object?> get props => [
-    id,
-    mobileNumber,
-    operator,
-    amount,
-    rechargeDate,
-    validityDays,
-    expiryDate,
-    reminderEnabled,
-    reminderDaysBefore,
-  ];
+        id,
+        mobileNumber,
+        operator,
+        amount,
+        rechargeDate,
+        validityDays,
+        expiryDate,
+        reminderEnabled,
+        reminderDaysBefore,
+      ];
 }
 
-// Enums
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
 enum ReminderCategory {
   personal,
   work,
@@ -180,9 +214,10 @@ enum RepeatType {
   yearly,
 }
 
-// Extensions
+// ─── Extensions ──────────────────────────────────────────────────────────────
+
 extension ReminderCategoryExtension on ReminderCategory {
-  String get name {
+  String get displayName {
     switch (this) {
       case ReminderCategory.personal:
         return 'Personal';
@@ -198,6 +233,10 @@ extension ReminderCategoryExtension on ReminderCategory {
         return 'Other';
     }
   }
+
+  // Keep backward compat — callers used `.name` which conflicts with Dart enum .name
+  // Redirect to displayName
+  String get name => displayName;
 
   IconData get icon {
     switch (this) {
@@ -235,7 +274,7 @@ extension ReminderCategoryExtension on ReminderCategory {
 }
 
 extension RepeatTypeExtension on RepeatType {
-  String get name {
+  String get displayName {
     switch (this) {
       case RepeatType.none:
         return 'No Repeat';
@@ -249,4 +288,6 @@ extension RepeatTypeExtension on RepeatType {
         return 'Yearly';
     }
   }
+
+  String get name => displayName;
 }

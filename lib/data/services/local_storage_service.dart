@@ -10,12 +10,12 @@ class LocalStorageService {
 
   LocalStorageService(this._prefs);
 
-  // Reminder Operations
+  // ─── Reminder Operations ───────────────────────────────────────────────────
+
   Future<List<Reminder>> getReminders() async {
     try {
       final String? remindersJson = _prefs.getString(_remindersKey);
       if (remindersJson == null) return [];
-
       final List<dynamic> decoded = jsonDecode(remindersJson);
       return decoded.map((json) => Reminder.fromJson(json)).toList();
     } catch (e) {
@@ -25,9 +25,7 @@ class LocalStorageService {
 
   Future<bool> saveReminders(List<Reminder> reminders) async {
     try {
-      final List<Map<String, dynamic>> jsonList =
-      reminders.map((r) => r.toJson()).toList();
-      final String encoded = jsonEncode(jsonList);
+      final encoded = jsonEncode(reminders.map((r) => r.toJson()).toList());
       return await _prefs.setString(_remindersKey, encoded);
     } catch (e) {
       return false;
@@ -37,31 +35,29 @@ class LocalStorageService {
   Future<bool> addReminder(Reminder reminder) async {
     final reminders = await getReminders();
     reminders.add(reminder);
-    return await saveReminders(reminders);
+    return saveReminders(reminders);
   }
 
   Future<bool> updateReminder(Reminder reminder) async {
     final reminders = await getReminders();
     final index = reminders.indexWhere((r) => r.id == reminder.id);
-    if (index != -1) {
-      reminders[index] = reminder;
-      return await saveReminders(reminders);
-    }
-    return false;
+    if (index == -1) return false;
+    reminders[index] = reminder;
+    return saveReminders(reminders);
   }
 
   Future<bool> deleteReminder(String id) async {
     final reminders = await getReminders();
     reminders.removeWhere((r) => r.id == id);
-    return await saveReminders(reminders);
+    return saveReminders(reminders);
   }
 
-  // Recharge Operations
+  // ─── Recharge Operations ──────────────────────────────────────────────────
+
   Future<List<MobileRecharge>> getRecharges() async {
     try {
       final String? rechargesJson = _prefs.getString(_rechargesKey);
       if (rechargesJson == null) return [];
-
       final List<dynamic> decoded = jsonDecode(rechargesJson);
       return decoded.map((json) => MobileRecharge.fromJson(json)).toList();
     } catch (e) {
@@ -71,9 +67,7 @@ class LocalStorageService {
 
   Future<bool> saveRecharges(List<MobileRecharge> recharges) async {
     try {
-      final List<Map<String, dynamic>> jsonList =
-      recharges.map((r) => r.toJson()).toList();
-      final String encoded = jsonEncode(jsonList);
+      final encoded = jsonEncode(recharges.map((r) => r.toJson()).toList());
       return await _prefs.setString(_rechargesKey, encoded);
     } catch (e) {
       return false;
@@ -83,29 +77,32 @@ class LocalStorageService {
   Future<bool> addRecharge(MobileRecharge recharge) async {
     final recharges = await getRecharges();
     recharges.add(recharge);
-    return await saveRecharges(recharges);
+    return saveRecharges(recharges);
   }
 
   Future<bool> updateRecharge(MobileRecharge recharge) async {
     final recharges = await getRecharges();
     final index = recharges.indexWhere((r) => r.id == recharge.id);
-    if (index != -1) {
-      recharges[index] = recharge;
-      return await saveRecharges(recharges);
-    }
-    return false;
+    if (index == -1) return false;
+    recharges[index] = recharge;
+    return saveRecharges(recharges);
   }
 
   Future<bool> deleteRecharge(String id) async {
     final recharges = await getRecharges();
     recharges.removeWhere((r) => r.id == id);
-    return await saveRecharges(recharges);
+    return saveRecharges(recharges);
   }
 
-  // Clear all data
+  // ─── Clear All ────────────────────────────────────────────────────────────
+
   Future<bool> clearAll() async {
-    await _prefs.remove(_remindersKey);
-    await _prefs.remove(_rechargesKey);
-    return true;
+    try {
+      await _prefs.remove(_remindersKey);
+      await _prefs.remove(_rechargesKey);
+      return true;
+    } catch (e) {
+      return false;
+    }
   }
 }
